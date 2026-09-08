@@ -21,6 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <cstdio>
+
 #include "MapleBus.hpp"
 #include "MapleUtils.hpp"
 #include "pico/stdlib.h"
@@ -631,11 +633,13 @@ MapleBusInterface::Status MapleBus::processEvents(uint64_t currentTimeUs)
 
                 if (status.phase == Phase::WAITING_FOR_READ_START)
                 {
+                    printf("read  start  timeout\n");
                     status.phase = Phase::READ_FAILED;
                     ++mNVStats.numNullReads;
                 }
                 else
                 {
+                    printf("stopping tx sm timeout\n");
                     status.phase = Phase::WRITE_FAILED;
                     ++mNVStats.numWriteFail;
                 }

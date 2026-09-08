@@ -576,6 +576,7 @@ void usb_msc_add(UsbFile* file)
   assert(lockGuard.isLocked());
 
   const char* filename = file->getFileName();
+  printf("adding: %s\n", filename);
   if (*filename != '\0')
   {
     // Find first empty slot and add file

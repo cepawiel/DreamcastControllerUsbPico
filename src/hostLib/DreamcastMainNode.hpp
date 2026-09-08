@@ -28,6 +28,7 @@
 #include "hal/MapleBus/MapleBusInterface.hpp"
 #include "DreamcastPeripheral.hpp"
 #include "TransmissionTimeliner.hpp"
+#include "hal/MapleBus/MapleBusInterface.hpp"
 
 #include <memory>
 #include <vector>
