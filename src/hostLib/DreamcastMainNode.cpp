@@ -7,12 +7,12 @@
 DreamcastMainNode::DreamcastMainNode(MapleBusInterface& bus,
                                      PlayerData playerData,
                                      std::shared_ptr<PrioritizedTxScheduler> prioritizedTxScheduler) :
-    DreamcastNode(DreamcastPeripheral::MAIN_PERIPHERAL_ADDR_MASK,
+    DreamcastNode(1,
                   std::make_shared<EndpointTxScheduler>(
                     prioritizedTxScheduler,
                     PrioritizedTxScheduler::MAIN_TRANSMISSION_PRIORITY,
                     DreamcastPeripheral::getRecipientAddress(
-                        playerData.playerIndex, DreamcastPeripheral::MAIN_PERIPHERAL_ADDR_MASK)
+                        playerData.playerIndex, DreamcastPeripheral::SUB_PERIPHERAL_ADDR_START_MASK)
                   ),
                   playerData),
     mSubNodes(),
@@ -21,18 +21,18 @@ DreamcastMainNode::DreamcastMainNode(MapleBusInterface& bus,
     mCommFailCount(0)
 {
     addInfoRequestToSchedule();
-    mSubNodes.reserve(DreamcastPeripheral::MAX_SUB_PERIPHERALS);
-    for (uint32_t i = 0; i < DreamcastPeripheral::MAX_SUB_PERIPHERALS; ++i)
-    {
-        uint8_t addr = DreamcastPeripheral::subPeripheralMask(i);
-        mSubNodes.push_back(std::make_shared<DreamcastSubNode>(
-            addr,
-            std::make_shared<EndpointTxScheduler>(
-                prioritizedTxScheduler,
-                PrioritizedTxScheduler::SUB_TRANSMISSION_PRIORITY,
-                DreamcastPeripheral::getRecipientAddress(playerData.playerIndex, addr)),
-            mPlayerData));
-    }
+    // mSubNodes.reserve(DreamcastPeripheral::MAX_SUB_PERIPHERALS);
+    // for (uint32_t i = 0; i < DreamcastPeripheral::MAX_SUB_PERIPHERALS; ++i)
+    // {
+    //     uint8_t addr = DreamcastPeripheral::subPeripheralMask(i);
+    //     mSubNodes.push_back(std::make_shared<DreamcastSubNode>(
+    //         addr,
+    //         std::make_shared<EndpointTxScheduler>(
+    //             prioritizedTxScheduler,
+    //             PrioritizedTxScheduler::SUB_TRANSMISSION_PRIORITY,
+    //             DreamcastPeripheral::getRecipientAddress(playerData.playerIndex, addr)),
+    //         mPlayerData));
+    // }
 }
 
 DreamcastMainNode::~DreamcastMainNode()
