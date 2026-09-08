@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "MapleBus.hpp"
 #include "pico/stdlib.h"
 #include "hardware/structs/systick.h"
@@ -165,6 +166,9 @@ MapleBus::MapleBus(uint32_t pinAIn, uint32_t pinAOut, int32_t dirPin, bool dirOu
                             &mSmIn.mProgram.mPio->rxf[mSmIn.mSmIdx],
                             (sizeof(mReadBuffer) / sizeof(mReadBuffer[0])),
                             false);
+
+    // mSmIn.stop();
+    // mSmOut.stop(true);
 }
 
 inline void MapleBus::readIsr()
@@ -477,6 +481,7 @@ MapleBusInterface::Status MapleBus::processEvents(uint64_t currentTimeUs)
 
         if (status.phase == Phase::WAITING_FOR_READ_START)
         {
+            printf("read  start  timeout\n");
             mSmIn.stop();
             status.phase = Phase::READ_FAILED;
             status.failureReason = FailureReason::TIMEOUT;
@@ -486,6 +491,7 @@ MapleBusInterface::Status MapleBus::processEvents(uint64_t currentTimeUs)
         {
             // Stopping both out and in just in case there was a race condition (state machine could
             // have *just* transitioned to read as we were processing this timeout)
+            printf("stopping tx sm timeout\n");
             mSmOut.stop(false);
             mSmIn.stop();
             // Output to dir pin that we are in input mode

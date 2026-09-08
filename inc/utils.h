@@ -10,12 +10,12 @@
 // Just for completeness...
 #define INT_DIVIDE_FLOOR(x,y) ((x)/(y))
 
-#if SHOW_DEBUG_MESSAGES && !defined(UNITTEST)
+// #if SHOW_DEBUG_MESSAGES && !defined(UNITTEST)
     #include <stdio.h>
     #define DEBUG_PRINT(...) printf (__VA_ARGS__)
-#else
-    #define DEBUG_PRINT(...)
-#endif
+// #else
+    // #define DEBUG_PRINT(...)
+// #endif
 
 template <typename T>
 inline T limit_value(T value, T min, T max)

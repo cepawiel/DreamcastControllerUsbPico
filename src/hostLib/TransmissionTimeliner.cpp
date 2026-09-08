@@ -1,5 +1,6 @@
 #include "TransmissionTimeliner.hpp"
 #include <assert.h>
+#include <cstdio>
 
 TransmissionTimeliner::TransmissionTimeliner(MapleBusInterface& bus, std::shared_ptr<PrioritizedTxScheduler> schedule):
     mBus(bus), mSchedule(schedule), mCurrentTx(nullptr)

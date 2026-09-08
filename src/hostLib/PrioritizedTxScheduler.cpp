@@ -252,6 +252,7 @@ uint32_t PrioritizedTxScheduler::countRecipients(uint8_t recipientAddr)
         {
             if ((*iter)->packet->frame.recipientAddr == recipientAddr)
             {
+                // printf("0x%08lX\n", (*iter)->packet->getFrameWord());
                 ++n;
             }
         }

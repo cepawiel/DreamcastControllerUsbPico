@@ -27,13 +27,14 @@ void DreamcastScreen::txComplete(std::shared_ptr<const MaplePacket> packet,
         // TODO: return code is ignored for now; in the future, try to resend on failure
     }
 }
-
+#include <cstdio>
 void DreamcastScreen::task(uint64_t currentTimeUs)
 {
     if (currentTimeUs > mNextCheckTime)
     {
         if (mScreenData.isNewDataAvailable() || mUpdateRequired)
         {
+            printf("%s:%d\n", __FILE__, __LINE__);
             // Write screen data
             static const uint8_t partitionNum = 0; // Always 0
             static const uint8_t sequenceNum = 0;  // 1 and only 1 in this sequence - always 0

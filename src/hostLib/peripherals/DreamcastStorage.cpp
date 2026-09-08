@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <cstdio>
 
 DreamcastStorage::DreamcastStorage(uint8_t addr,
                                    uint32_t fd,
@@ -41,6 +42,7 @@ DreamcastStorage::DreamcastStorage(uint8_t addr,
         && getReadAccessCount() == 1)
     {
         int32_t idx = subPeripheralIndex(mAddr);
+        printf("0x%X\n", mAddr);
         if (idx >= 0)
         {
             if (idx == 0)
@@ -52,6 +54,7 @@ DreamcastStorage::DreamcastStorage(uint8_t addr,
                 snprintf(mFileName, sizeof(mFileName), "vmu%lu-%li.bin", (long unsigned int)mPlayerIndex, (long int)idx);
             }
 
+            printf("%s:%d\n", __FILE__, __LINE__);
             mUsbFileSystem.add(this);
         }
     }
@@ -70,6 +73,7 @@ void DreamcastStorage::task(uint64_t currentTimeUs)
     {
         case READ_WRITE_STARTED:
         {
+            printf("storage write started\n");
             uint32_t payload[2] = {FUNCTION_CODE, mReadingBlock};
             mReadingTxId = mEndpointTxScheduler->add(
                 PrioritizedTxScheduler::TX_TIME_ASAP,
@@ -137,6 +141,7 @@ void DreamcastStorage::task(uint64_t currentTimeUs)
 
 void DreamcastStorage::txStarted(std::shared_ptr<const Transmission> tx)
 {
+    printf("dc storage tx started\n");
     if (mReadState != READ_WRITE_IDLE && tx->transmissionId == mReadingTxId)
     {
         mReadState = READ_WRITE_PROCESSING;
@@ -151,6 +156,7 @@ void DreamcastStorage::txFailed(bool writeFailed,
                                 bool readFailed,
                                 std::shared_ptr<const Transmission> tx)
 {
+    printf("dc storage tx failed\n");
     if (mReadState != READ_WRITE_IDLE && tx->transmissionId == mReadingTxId)
     {
         // Failure
@@ -178,6 +184,7 @@ void DreamcastStorage::txFailed(bool writeFailed,
 void DreamcastStorage::txComplete(std::shared_ptr<const MaplePacket> packet,
                                   std::shared_ptr<const Transmission> tx)
 {
+    printf("dc storage tx complete\n");
     if (mReadState != READ_WRITE_IDLE && tx->transmissionId == mReadingTxId)
     {
         // Complete!
@@ -327,6 +334,7 @@ int32_t DreamcastStorage::write(uint8_t blockNum,
                                 uint16_t bufferLen,
                                 uint32_t timeoutUs)
 {
+    printf("Writing!\n");
     if (!isReadOnly())
     {
         assert(mWriteState == READ_WRITE_IDLE);
