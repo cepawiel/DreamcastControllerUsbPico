@@ -9,9 +9,9 @@
 #include "string.h"
 #include "utils.h"
 
-std::shared_ptr<MapleBusInterface> create_maple_bus(uint32_t pinA, int32_t dirPin, bool dirOutHigh)
+std::shared_ptr<MapleBusInterface> create_maple_bus(uint32_t pinAIn, uint32_t pinAOut, int32_t dirPin, bool dirOutHigh)
 {
-    return std::make_shared<MapleBus>(pinA, dirPin, dirOutHigh);
+    return std::make_shared<MapleBus>(pinAIn, pinAOut, dirPin, dirOutHigh);
 }
 
 MapleBus* mapleWriteIsr[4] = {};
@@ -96,16 +96,23 @@ void MapleBus::initIsrs()
     pio_set_irq1_source_enabled(MAPLE_IN_PIO, pis_interrupt3, true);
 }
 
-MapleBus::MapleBus(uint32_t pinA, int32_t dirPin, bool dirOutHigh) :
-    mPinA(pinA),
-    mPinB(pinA + 1),
-    mDirPin(dirPin),
-    mDirOutHigh(dirOutHigh),
-    mMaskA(1 << mPinA),
-    mMaskB(1 << mPinB),
-    mMaskAB(mMaskA | mMaskB),
-    mSmOut(CPU_FREQ_KHZ, MAPLE_NS_PER_BIT, mPinA),
-    mSmIn(mPinA),
+MapleBus::MapleBus(uint32_t pinAIn, uint32_t pinAOut, int32_t dirPin, bool dirOutHigh) :
+    mPinATx(pinAOut),
+    mPinBTx(pinAOut+1),
+    mDirPinTx(-1),
+    mDirOutHighTx(true),
+    mMaskATx(1 << mPinATx),
+    mMaskBTx(1 << mPinBTx),
+    mMaskABTx(mMaskATx | mMaskBTx),
+
+    mPinARx(pinAIn),
+    mPinBRx(pinAIn+1),
+    mMaskARx(1 << mPinARx),
+    mMaskBRx(1 << mPinBRx),
+    mMaskABRx(mMaskARx | mMaskBRx),
+
+    mSmOut(CPU_FREQ_KHZ, MAPLE_NS_PER_BIT, mPinATx),
+    mSmIn(mPinARx),
     mDmaWriteChannel(dma_claim_unused_channel(true)),
     mDmaReadChannel(dma_claim_unused_channel(true)),
     mWriteBuffer(),
@@ -120,12 +127,12 @@ MapleBus::MapleBus(uint32_t pinA, int32_t dirPin, bool dirOutHigh) :
     mapleWriteIsr[mSmOut.mSmIdx] = this;
     mapleReadIsr[mSmIn.mSmIdx] = this;
 
-    if (mDirPin >= 0)
+    if (mDirPinTx >= 0)
     {
         // Initialize directional pin and set as input
-        gpio_init(mDirPin);
-        gpio_put(mDirPin, !mDirOutHigh);
-        gpio_set_dir(mDirPin, true);
+        gpio_init(mDirPinTx);
+        gpio_put(mDirPinTx, !mDirOutHighTx);
+        gpio_set_dir(mDirPinTx, true);
     }
 
     // This only needs to be called once but no issue calling it for each
@@ -192,13 +199,13 @@ inline void MapleBus::writeIsr()
         mSmIn.start();
 
         // Output to dir pin that we are in input mode
-        if (mDirPin >= 0)
+        if (mDirPinTx >= 0)
         {
-            gpio_put(mDirPin, !mDirOutHigh);
+            gpio_put(mDirPinTx, !mDirOutHighTx);
         }
 
         // Soft stop was done on state machine, so ensure pull-up is re-enabled
-        gpio_set_pulls(mPinB, true, false);
+        gpio_set_pulls(mPinBTx, true, false);
 
         if (mResponseTimeoutUs == NO_TIMEOUT)
         {
@@ -214,10 +221,13 @@ inline void MapleBus::writeIsr()
     else
     {
         // Output to dir pin that we are in input mode
-        if (mDirPin >= 0)
+        if (mDirPinTx >= 0)
         {
-            gpio_put(mDirPin, !mDirOutHigh);
+            gpio_put(mDirPinTx, !mDirOutHighTx);
         }
+
+        // Soft stop was done on state machine, so ensure pull-up is re-enabled
+        gpio_set_pulls(mPinBTx, true, false);
 
         // Nothing more to do
         mCurrentPhase = Phase::WRITE_COMPLETE;
@@ -232,7 +242,7 @@ bool MapleBus::lineCheck()
     // Ensure no one is pulling low
     do
     {
-        if ((gpio_get_all() & mMaskAB) != mMaskAB)
+        if ((gpio_get_all() & mMaskABTx) != mMaskABTx)
         {
             // Something is pulling low
             return false;
@@ -295,9 +305,9 @@ bool MapleBus::write(const MaplePacket& packet,
             mSmOut.start();
 
             // Output to dir pin that we are in output mode
-            if (mDirPin >= 0)
+            if (mDirPinTx >= 0)
             {
-                gpio_put(mDirPin, mDirOutHigh);
+                gpio_put(mDirPinTx, mDirOutHighTx);
                 // There will be enough of a delay between now and when data lines on microcontroller
                 // transition to output
             }
@@ -344,11 +354,11 @@ bool MapleBus::startRead(uint64_t readTimeoutUs)
         }
         mCurrentPhase = Phase::WAITING_FOR_READ_START;
 
-        // Output to dir pin that we are in input mode
-        if (mDirPin >= 0)
-        {
-            gpio_put(mDirPin, !mDirOutHigh);
-        }
+        // // Output to dir pin that we are in input mode
+        // if (mDirPinTx >= 0)
+        // {
+        //     gpio_put(mDirPinTx, !mDirOutHighTx);
+        // }
 
         // Start reading
         mSmIn.start();
@@ -479,9 +489,9 @@ MapleBusInterface::Status MapleBus::processEvents(uint64_t currentTimeUs)
             mSmOut.stop(false);
             mSmIn.stop();
             // Output to dir pin that we are in input mode
-            if (mDirPin >= 0)
+            if (mDirPinTx >= 0)
             {
-                gpio_put(mDirPin, !mDirOutHigh);
+                gpio_put(mDirPinTx, !mDirOutHighTx);
             }
             status.phase = Phase::WRITE_FAILED;
             status.failureReason = FailureReason::TIMEOUT;
