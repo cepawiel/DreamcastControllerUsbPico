@@ -275,6 +275,10 @@ struct MaplePacket
     inline void setPayload(const uint32_t* words, uint8_t len)
     {
         payload.clear();
+        // Seems to be hitting something similar to this bug:
+        // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100366
+        // inserting asm to avoid the optimization (likely bad)
+        asm("");
         appendPayload(words, len);
     }
 

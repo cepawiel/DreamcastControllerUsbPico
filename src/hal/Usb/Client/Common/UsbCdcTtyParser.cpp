@@ -4,6 +4,7 @@
 #include <limits>
 #include <string.h>
 #include <algorithm>
+#include <cstdio>
 
 const char* UsbCdcTtyParser::WHITESPACE_CHARS = "\r\n\t ";
 const char* UsbCdcTtyParser::INPUT_EOL_CHARS = "\r\n";
