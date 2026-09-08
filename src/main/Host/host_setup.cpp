@@ -123,7 +123,7 @@ static std::map<uint8_t, DreamcastNodeData> setup_dreamcast_nodes(const std::vec
             playerDef.mapleHostAddr
         );
         thisNode.mainNode = std::make_shared<DreamcastMainNode>(
-            create_maple_bus(playerDef.gpioA, playerDef.gpioDir, playerDef.dirOutHigh),
+            create_maple_bus(playerDef.gpioA, playerDef.gpioA, playerDef.gpioDir, playerDef.dirOutHigh),
             thisNode.playerData,
             thisNode.scheduler,
             playerDef.autoDetectOnly

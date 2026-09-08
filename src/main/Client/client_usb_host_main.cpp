@@ -110,7 +110,7 @@ void core0()
     buzzer.buzz({.priority=1, .frequency=2732.0, .seconds=1.0});
 
     // Create the bus for client-mode operation
-    std::shared_ptr<MapleBusInterface> bus = create_maple_bus(P1_BUS_START_PIN, P1_DIR_PIN, DIR_OUT_HIGH);
+    std::shared_ptr<MapleBusInterface> bus = create_maple_bus(P1_BUS_START_PIN, P1_BUS_START_PIN, P1_DIR_PIN, DIR_OUT_HIGH);
 
     // Main peripheral (address of 0x20) with 1 function: controller
     client::DreamcastMainPeripheral mainPeripheral(

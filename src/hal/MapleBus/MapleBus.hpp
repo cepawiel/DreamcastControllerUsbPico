@@ -42,10 +42,14 @@ class MapleBus : public MapleBusInterface
 {
     public:
         //! Maple Bus constructor
-        //! @param[in] pinA  GPIO index for pin A. The very next GPIO will be designated as pin B.
+        //! @param[in] pinAIn  GPIO index for the receive pin A. The very next GPIO will be
+        //!                    designated as the receive pin B.
+        //! @param[in] pinAOut  GPIO index for the transmit pin A. The very next GPIO will be
+        //!                     designated as the transmit pin B. Pass the same value as pinAIn for
+        //!                     a conventional bus where the same pair is both driven and sensed.
         //! @param[in] dirPin  GPIO pin which selects direction (-1 to disable)
         //! @param[in] dirOutHigh  True if dirPin should be high on write; false for low on write
-        MapleBus(uint32_t pinA, int32_t dirPin = -1, bool dirOutHigh = true);
+        MapleBus(uint32_t pinAIn, uint32_t pinAOut, int32_t dirPin = -1, bool dirOutHigh = true);
 
         //! Writes a packet to the maple bus
         //! @post processEvents() must periodically be called to check status
@@ -147,19 +151,31 @@ class MapleBus : public MapleBusInterface
 
     private:
         //! Pin A GPIO index for this bus
-        const uint32_t mPinA;
+        const uint32_t mPinATx;
         //! Pin B GPIO index for this bus
-        const uint32_t mPinB;
+        const uint32_t mPinBTx;
         //! Direction pin or -1 if not defined
-        const int32_t mDirPin;
+        const int32_t mDirPinTx;
         //! True to set dir pin high on write and low on read; false for opposite
-        const bool mDirOutHigh;
+        const bool mDirOutHighTx;
         //! Pin A GPIO mask for this bus
-        const uint32_t mMaskA;
+        const uint32_t mMaskATx;
         //! Pin B GPIO mask for this bus
-        const uint32_t mMaskB;
+        const uint32_t mMaskBTx;
         //! GPIO mask for all bits used by this bus
-        const uint32_t mMaskAB;
+        const uint32_t mMaskABTx;
+
+        //! Pin A GPIO index for this bus
+        const uint32_t mPinARx;
+        //! Pin B GPIO index for this bus
+        const uint32_t mPinBRx;
+        //! Pin A GPIO mask for this bus
+        const uint32_t mMaskARx;
+        //! Pin B GPIO mask for this bus
+        const uint32_t mMaskBRx;
+        //! GPIO mask for all bits used by this bus
+        const uint32_t mMaskABRx;
+        
         //! The PIO state machine used for output by this bus
         MapleOutStateMachine mSmOut;
         //! The PIO state machine index used for input by this bus
@@ -234,4 +250,4 @@ class MapleBus : public MapleBusInterface
         void* volatile mCallbackFnContext;
 };
 
-std::shared_ptr<MapleBusInterface> create_maple_bus(uint32_t pinA, int32_t dirPin, bool dirOutHigh);
+std::shared_ptr<MapleBusInterface> create_maple_bus(uint32_t pinAIn, uint32_t pinAOut, int32_t dirPin, bool dirOutHigh);

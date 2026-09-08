@@ -34,9 +34,9 @@
 
 #include <limits>
 
-std::shared_ptr<MapleBusInterface> create_maple_bus(uint32_t pinA, int32_t dirPin, bool dirOutHigh)
+std::shared_ptr<MapleBusInterface> create_maple_bus(uint32_t pinAIn, uint32_t pinAOut, int32_t dirPin, bool dirOutHigh)
 {
-    return std::make_shared<MapleBus>(pinA, dirPin, dirOutHigh);
+    return std::make_shared<MapleBus>(pinAIn, pinAOut, dirPin, dirOutHigh);
 }
 
 MapleBus* mapleWriteIsr[4] = {};
@@ -127,16 +127,23 @@ void MapleBus::initIsrs()
     pio_set_irq1_source_enabled(MAPLE_IN_PIO, pis_interrupt3, true);
 }
 
-MapleBus::MapleBus(uint32_t pinA, int32_t dirPin, bool dirOutHigh) :
-    mPinA(pinA),
-    mPinB(pinA + 1),
-    mDirPin(dirPin),
-    mDirOutHigh(dirOutHigh),
-    mMaskA(1 << mPinA),
-    mMaskB(1 << mPinB),
-    mMaskAB(mMaskA | mMaskB),
-    mSmOut(CPU_FREQ_KHZ, MAPLE_NS_PER_BIT, mPinA),
-    mSmIn(mPinA),
+MapleBus::MapleBus(uint32_t pinAIn, uint32_t pinAOut, int32_t dirPin, bool dirOutHigh) :
+    mPinATx(pinAOut),
+    mPinBTx(pinAOut+1),
+    mDirPinTx(dirPin),
+    mDirOutHighTx(dirOutHigh),
+    mMaskATx(1 << mPinATx),
+    mMaskBTx(1 << mPinBTx),
+    mMaskABTx(mMaskATx | mMaskBTx),
+
+    mPinARx(pinAIn),
+    mPinBRx(pinAIn+1),
+    mMaskARx(1 << mPinARx),
+    mMaskBRx(1 << mPinBRx),
+    mMaskABRx(mMaskARx | mMaskBRx),
+
+    mSmOut(CPU_FREQ_KHZ, MAPLE_NS_PER_BIT, mPinATx),
+    mSmIn(mPinARx),
     mDmaWriteChannel(dma_claim_unused_channel(true)),
     mDmaReadChannel(dma_claim_unused_channel(true)),
     mWriteBuffer(),
@@ -158,12 +165,12 @@ MapleBus::MapleBus(uint32_t pinA, int32_t dirPin, bool dirOutHigh) :
     mapleWriteIsr[mSmOut.mSmIdx] = this;
     mapleReadIsr[mSmIn.mSmIdx] = this;
 
-    if (mDirPin >= 0)
+    if (mDirPinTx >= 0)
     {
         // Initialize directional pin and set as input
-        gpio_init(mDirPin);
+        gpio_init(mDirPinTx);
         setDirection(false);
-        gpio_set_dir(mDirPin, true);
+        gpio_set_dir(mDirPinTx, true);
     }
 
     // This only needs to be called once but no issue calling it for each
@@ -216,7 +223,7 @@ inline void __not_in_flash_func(MapleBus::readIsr)()
 
         if (mCallbackFn)
         {
-            mCallbackFn(mCallbackFnContext, mPinA, mCurrentPhase);
+            mCallbackFn(mCallbackFnContext, mPinATx, mCurrentPhase);
         }
     }
     // else: shouldn't have reached here
@@ -238,7 +245,7 @@ inline void __not_in_flash_func(MapleBus::writeIsr)()
         setDirection(false);
 
         // Soft stop was done on state machine, so ensure pull-up is re-enabled
-        maple_gpio_set_pulls(mPinB, true, false);
+        maple_gpio_set_pulls(mPinBTx, true, false);
 
         if (mResponseTimeoutUs == NO_TIMEOUT)
         {
@@ -263,12 +270,15 @@ inline void __not_in_flash_func(MapleBus::writeIsr)()
         // Switch to input mode
         setDirection(false);
 
+        // Soft stop was done on state machine, so ensure pull-up is re-enabled
+        maple_gpio_set_pulls(mPinBTx, true, false);
+
         // Nothing more to do
         mCurrentPhase = Phase::WRITE_COMPLETE;
 
         if (mCallbackFn)
         {
-            mCallbackFn(mCallbackFnContext, mPinA, mCurrentPhase);
+            mCallbackFn(mCallbackFnContext, mPinATx, mCurrentPhase);
         }
     }
 }
@@ -281,7 +291,7 @@ bool MapleBus::lineCheck()
     // Ensure no one is pulling low
     do
     {
-        if ((gpio_get_all() & mMaskAB) != mMaskAB)
+        if ((gpio_get_all() & mMaskABTx) != mMaskABTx)
         {
             // Something is pulling low
             return false;
@@ -297,15 +307,17 @@ void __not_in_flash_func(MapleBus::setDirection)(bool output)
     if (!output)
     {
         // About to switch to input - ensure GPIO are input FIRST!
-        gpio_set_dir_in_masked(mMaskAB);
-        maple_gpio_set_function(mPinB, GPIO_FUNC_SIO);
-        maple_gpio_set_function(mPinA, GPIO_FUNC_SIO);
+        // Only the TX pair is ever driven by this device, so only it needs releasing; the RX pair
+        // is left to the in state machine, which owns it for the whole life of the bus.
+        gpio_set_dir_in_masked(mMaskABTx);
+        maple_gpio_set_function(mPinBTx, GPIO_FUNC_SIO);
+        maple_gpio_set_function(mPinATx, GPIO_FUNC_SIO);
     }
 
     // Output to dir pin that we are in input mode
-    if (mDirPin >= 0)
+    if (mDirPinTx >= 0)
     {
-        gpio_put(mDirPin, mDirOutHigh ^ !output);
+        gpio_put(mDirPinTx, mDirOutHighTx ^ !output);
     }
 }
 

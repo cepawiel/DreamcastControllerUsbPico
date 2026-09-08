@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 #include <memory>
+#include <limits>
 #include "configuration.h"
 #include "utils.h"
 #include "MaplePacket.hpp"
@@ -201,7 +202,11 @@ class MapleBusInterface
 };
 
 //! Creates a maple bus
-//! @param[in] pinA  GPIO index for pin A. The very next GPIO will be designated as pin B.
-extern std::shared_ptr<MapleBusInterface> create_maple_bus(uint32_t pinA, int32_t dirPin = -1, bool dirOutHigh = true);
+//! @param[in] pinAIn  GPIO index for the receive pin A. The very next GPIO will be designated as
+//!                    the receive pin B.
+//! @param[in] pinAOut  GPIO index for the transmit pin A. The very next GPIO will be designated as
+//!                     the transmit pin B. Pass the same value as pinAIn for a conventional bus
+//!                     where the same pair is both driven and sensed.
+extern std::shared_ptr<MapleBusInterface> create_maple_bus(uint32_t pinAIn, uint32_t pinAOut, int32_t dirPin = -1, bool dirOutHigh = true);
 
 #endif // __MAPLE_BUS_INTERFACE_H__
