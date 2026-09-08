@@ -45,11 +45,17 @@ class DreamcastMainNode : public DreamcastNode
         //! @param[in] playerData  The player data passed to any connected peripheral
         //! @param[in] prioritizedTxScheduler The scheduler handling Maple Bus commands
         //! @param[in] detectionOnly When true, poll the node until its presence is detected
+        //! @param[in] directSubPeripheral When true, this node is a sub peripheral wired directly
+        //!                                to the bus (such as a VMU connected straight to the pico)
+        //!                                rather than a main peripheral. The node is addressed at
+        //!                                the first sub peripheral address and no sub nodes are
+        //!                                created under it.
         DreamcastMainNode(
             const std::shared_ptr<MapleBusInterface>& bus,
             const std::shared_ptr<PlayerData>& playerData,
             const std::shared_ptr<PrioritizedTxScheduler>& prioritizedTxScheduler,
-            bool detectionOnly = false
+            bool detectionOnly = false,
+            bool directSubPeripheral = false
         );
 
         //! Virtual destructor
@@ -140,6 +146,9 @@ class DreamcastMainNode : public DreamcastNode
     protected:
         //! True when the node only operates for detection only
         const bool mDetectionOnly;
+        //! True when this node is a sub peripheral wired directly to the bus rather than a main
+        //! peripheral, in which case it has no sub nodes of its own
+        const bool mDirectSubPeripheral;
         //! True when a device is detected on this node
         bool mDeviceDetected;
         //! The MapleBusInterface associated with this node

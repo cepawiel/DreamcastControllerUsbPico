@@ -4,3 +4,4 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 add_subdirectory(Client)
 add_subdirectory(Host)
+add_subdirectory(VMU)

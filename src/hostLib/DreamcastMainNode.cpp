@@ -31,21 +31,29 @@ DreamcastMainNode::DreamcastMainNode(
     const std::shared_ptr<MapleBusInterface>& bus,
     const std::shared_ptr<PlayerData>& playerData,
     const std::shared_ptr<PrioritizedTxScheduler>& prioritizedTxScheduler,
-    bool detectionOnly
+    bool detectionOnly,
+    bool directSubPeripheral
 ) :
     DreamcastNode(
-        DreamcastPeripheral::MAIN_PERIPHERAL_ADDR_MASK,
+        // A directly connected sub peripheral (such as a VMU wired straight to the pico) answers on
+        // its own sub peripheral address rather than through a controller occupying the main slot.
+        directSubPeripheral
+            ? DreamcastPeripheral::SUB_PERIPHERAL_ADDR_START_MASK
+            : DreamcastPeripheral::MAIN_PERIPHERAL_ADDR_MASK,
         std::make_shared<EndpointTxScheduler>(
             prioritizedTxScheduler,
             PrioritizedTxScheduler::MAIN_TRANSMISSION_PRIORITY,
             DreamcastPeripheral::getRecipientAddress(
                 playerData->playerIndex,
-                DreamcastPeripheral::MAIN_PERIPHERAL_ADDR_MASK
+                directSubPeripheral
+                    ? DreamcastPeripheral::SUB_PERIPHERAL_ADDR_START_MASK
+                    : DreamcastPeripheral::MAIN_PERIPHERAL_ADDR_MASK
             )
         ),
         playerData
     ),
     mDetectionOnly(detectionOnly),
+    mDirectSubPeripheral(directSubPeripheral),
     mDeviceDetected(false),
     mMapleBus(bus),
     mSubNodes(),
@@ -58,17 +66,22 @@ DreamcastMainNode::DreamcastMainNode(
     mChangeReleaseTime(0)
 {
     addInfoRequestToSchedule();
-    mSubNodes.reserve(DreamcastPeripheral::MAX_SUB_PERIPHERALS);
-    for (uint32_t i = 0; i < DreamcastPeripheral::MAX_SUB_PERIPHERALS; ++i)
+    // A directly connected sub peripheral is the only device on the bus, so there are no sub nodes
+    // hanging off of it to poll.
+    if (!mDirectSubPeripheral)
     {
-        uint8_t addr = DreamcastPeripheral::subPeripheralMask(i);
-        mSubNodes.push_back(std::make_shared<DreamcastSubNode>(
-            addr,
-            std::make_shared<EndpointTxScheduler>(
-                prioritizedTxScheduler,
-                PrioritizedTxScheduler::SUB_TRANSMISSION_PRIORITY,
-                DreamcastPeripheral::getRecipientAddress(playerData->playerIndex, addr)),
-            mPlayerData));
+        mSubNodes.reserve(DreamcastPeripheral::MAX_SUB_PERIPHERALS);
+        for (uint32_t i = 0; i < DreamcastPeripheral::MAX_SUB_PERIPHERALS; ++i)
+        {
+            uint8_t addr = DreamcastPeripheral::subPeripheralMask(i);
+            mSubNodes.push_back(std::make_shared<DreamcastSubNode>(
+                addr,
+                std::make_shared<EndpointTxScheduler>(
+                    prioritizedTxScheduler,
+                    PrioritizedTxScheduler::SUB_TRANSMISSION_PRIORITY,
+                    DreamcastPeripheral::getRecipientAddress(playerData->playerIndex, addr)),
+                mPlayerData));
+        }
     }
 }
 
