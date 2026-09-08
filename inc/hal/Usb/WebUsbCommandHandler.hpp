@@ -30,6 +30,7 @@
 #include <memory>
 #include <functional>
 #include <list>
+#include <algorithm>
 
 //! Command parser for processing commands from a WebUSB serial stream
 class WebUsbCommandHandler

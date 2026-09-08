@@ -26,7 +26,7 @@
 
 #include <stdint.h>
 #include <memory>
-#include <limits>
+#include <cstdint>
 #include "configuration.h"
 #include "utils.h"
 #include "MaplePacket.hpp"
